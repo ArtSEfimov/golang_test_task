@@ -115,8 +115,8 @@ Replace `$id` with the quote's identifier.
 ```powershell
 $id = 1
 
-Invoke-RestMethod \
-  -Uri "http://localhost:8080/quotes/$id" \
+Invoke-RestMethod `
+  -Uri "http://localhost:8080/quotes/$id" `
   -Method DELETE
 ```
 
@@ -132,6 +132,11 @@ curl.exe -X DELETE http://localhost:8080/quotes/$id
 ## Notes
 
 * Ensure the API server is running on `localhost:8080` before executing commands.
+* To start the server, run the Go application from the project root directory:
+
+```bash
+go run main.go
+```
 * PowerShell examples use backticks (\`\`\`) for line continuation.
 * `Invoke-RestMethod` automatically parses JSON responses into PowerShell objects.
 * For `curl.exe` on Windows, avoid PowerShell's built-in `curl` alias by specifying `curl.exe`.
