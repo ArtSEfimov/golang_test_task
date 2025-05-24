@@ -6,12 +6,23 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 )
 
+func createPath(fileName string) string {
+	filePath := filepath.Join(ProjectRootDir, DataBaseDir, fileName)
+	dirPath := filepath.Dir(filePath)
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		panic(err)
+	}
+	return filePath
+}
+
 func createFile(fileName string) error {
-	file, creationErr := os.Create(fileName)
+	filePath := createPath(fileName)
+	file, creationErr := os.Create(filePath)
 	if creationErr != nil {
 		return creationErr
 	}
@@ -21,12 +32,11 @@ func createFile(fileName string) error {
 	}
 
 	return nil
-
 }
 
-func getFileSegment(fileName string) uint16 {
+func getFileSegment(filePath string) uint16 {
 	re := regexp.MustCompile(`_(\d{3})`)
-	match := re.FindStringSubmatch(fileName)
+	match := re.FindStringSubmatch(filepath.Base(filePath))
 	if match == nil {
 		return 0
 	}
@@ -42,8 +52,8 @@ func getFileName(fileSegment uint16) string {
 	return fmt.Sprintf("data_%03d.db", fileSegment)
 }
 
-func isFileExists(fileName string) bool {
-	if _, err := os.Stat(fileName); err != nil {
+func isFileExists(filePath string) bool {
+	if _, err := os.Stat(filePath); err != nil {
 		if os.IsNotExist(err) {
 			return false
 		}
@@ -51,9 +61,9 @@ func isFileExists(fileName string) bool {
 	return true
 }
 
-func getFileSize(fileName string) uint64 {
-	if isFileExists(fileName) {
-		fileInfo, _ := os.Stat(fileName)
+func getFileSize(filePath string) uint64 {
+	if isFileExists(filePath) {
+		fileInfo, _ := os.Stat(filePath)
 		return uint64(fileInfo.Size())
 	}
 	return 0
@@ -63,23 +73,28 @@ func updateFile(oldFileName string, manager *Manager) (updateFileErr error) {
 	fileSegment := getFileSegment(oldFileName)
 
 	newFileName := "tmp.db"
+	newFilePath := createPath(newFileName)
+
+	oldFilePath := createPath(oldFileName)
+
 	defer func() {
-		renameErr := os.Rename(newFileName, oldFileName)
+		renameErr := os.Rename(newFilePath, oldFilePath)
 
 		if renameErr != nil {
 			if updateFileErr != nil {
-				updateFileErr = fmt.Errorf("file update error: %w, rename error: %v", updateFileErr, renameErr)
+				updateFileErr = fmt.Errorf("file update error: %v, rename error: %v", updateFileErr, renameErr)
 			} else {
 				updateFileErr = renameErr
 			}
 		}
 	}()
+
 	creationError := createFile(newFileName)
 	if creationError != nil {
 		return creationError
 	}
 
-	dbFile, openErr := os.OpenFile(newFileName, os.O_APPEND, fs.ModeAppend)
+	dbFile, openErr := os.OpenFile(newFilePath, os.O_APPEND, fs.ModeAppend)
 	if openErr != nil {
 		panic(openErr)
 	}
@@ -124,7 +139,7 @@ func updateFile(oldFileName string, manager *Manager) (updateFileErr error) {
 
 	}
 
-	removeErr := os.Remove(oldFileName)
+	removeErr := os.Remove(oldFilePath)
 	if removeErr != nil {
 		return removeErr
 	}
@@ -133,20 +148,21 @@ func updateFile(oldFileName string, manager *Manager) (updateFileErr error) {
 
 }
 
-func getValidFileName(fileName string, dataSizePointer *uint64) (string, error) {
+func getValidFileName(filePath string, dataSizePointer *uint64) (string, error) {
 
-	if !isFileExists(fileName) {
-		creationErr := createFile(fileName)
+	if !isFileExists(filePath) {
+		creationErr := createFile(filepath.Base(filePath))
 		if creationErr != nil {
 			return "", creationErr
 		}
-		return fileName, nil
+		return filePath, nil
 	}
 
-	if getFileSize(fileName)+(*dataSizePointer) > MaxFileSegmentSize {
-		segment := getFileSegment(fileName)
+	if getFileSize(filePath)+(*dataSizePointer) > MaxFileSegmentSize {
+		segment := getFileSegment(filePath)
 		segment++
-		return getValidFileName(getFileName(segment), dataSizePointer)
+		fileName := getFileName(segment)
+		return getValidFileName(createPath(fileName), dataSizePointer)
 	}
-	return fileName, nil
+	return filePath, nil
 }

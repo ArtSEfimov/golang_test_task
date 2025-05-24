@@ -3,9 +3,13 @@ package db
 import (
 	"bufio"
 	"encoding/json"
+	"io"
+	"log"
 	"os"
 	"sync"
 )
+
+var IndexFilePath = createPath(IndexFileName)
 
 type Storage struct {
 	ID       uint64
@@ -25,15 +29,15 @@ func NewManager() *Manager {
 
 	manager := Manager{}
 
-	if !isFileExists(IndexFileName) {
-		err := createFile(IndexFileName)
-		if err != nil {
-			panic(err)
+	if !isFileExists(IndexFilePath) {
+		creationErr := createFile(IndexFileName)
+		if creationErr != nil {
+			panic(creationErr)
 		}
 		manager.IndexMap = make(map[uint64]DataLocation)
 		manager.ID = 0
 	} else {
-		indexFile, openErr := os.Open(IndexFileName)
+		indexFile, openErr := os.Open(IndexFilePath)
 		if openErr != nil {
 			panic(openErr)
 		}
@@ -47,7 +51,11 @@ func NewManager() *Manager {
 		fileReader := bufio.NewReader(indexFile)
 		decodeErr := json.NewDecoder(fileReader).Decode(&manager.Storage)
 		if decodeErr != nil {
-			panic(decodeErr)
+			if decodeErr == io.EOF {
+				log.Printf("database index file is empty: %v", decodeErr)
+			} else {
+				panic(decodeErr)
+			}
 		}
 	}
 
@@ -57,7 +65,7 @@ func NewManager() *Manager {
 func (m *Manager) storeIndexes() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	indexFile, creationErr := os.Create(IndexFileName)
+	indexFile, creationErr := os.Create(IndexFilePath)
 	if creationErr != nil {
 		panic(creationErr)
 	}

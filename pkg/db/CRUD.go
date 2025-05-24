@@ -12,14 +12,16 @@ func Create(data []byte, manager *Manager) error {
 
 	dataSize := uint64(len(data))
 
-	dbFileName, creationErr := getValidFileName(OriginalFileName, &dataSize)
+	filePath := createPath(OriginalFileName)
+
+	dbFilePath, creationErr := getValidFileName(filePath, &dataSize)
 	if creationErr != nil {
 		panic(creationErr)
 	}
 
-	dbSegment := getFileSegment(dbFileName)
+	dbSegment := getFileSegment(dbFilePath)
 
-	dbFile, openErr := os.OpenFile(dbFileName, os.O_APPEND, fs.ModeAppend)
+	dbFile, openErr := os.OpenFile(dbFilePath, os.O_APPEND, fs.ModeAppend)
 	if openErr != nil {
 		panic(openErr)
 	}
@@ -66,7 +68,10 @@ func Read(index uint64, manager *Manager) ([]byte, error) {
 
 	data := make([]byte, size)
 
-	dbFile, openErr := os.OpenFile(getFileName(dbSegment), os.O_RDONLY, fs.ModePerm)
+	fileName := getFileName(dbSegment)
+	filePath := createPath(fileName)
+
+	dbFile, openErr := os.OpenFile(filePath, os.O_RDONLY, fs.ModePerm)
 
 	if openErr != nil {
 		panic(openErr)
@@ -94,20 +99,22 @@ func Update(index uint64, data []byte, manager *Manager) error {
 	oldDBSegment := indexInstance.DBSegment
 
 	dataSize := uint64(len(data))
-	fileName := OriginalFileName
+
+	filePath := createPath(OriginalFileName)
 
 	var updateErr error
 
 	for {
-		dbFileName, creationErr := getValidFileName(fileName, &dataSize)
+		dbFilePath, creationErr := getValidFileName(filePath, &dataSize)
 		if creationErr != nil {
 			panic(creationErr)
 		}
-		newDBSegment := getFileSegment(dbFileName)
+		newDBSegment := getFileSegment(dbFilePath)
 
 		if newDBSegment == oldDBSegment {
 			newDBSegment++
-			fileName = getFileName(newDBSegment)
+			fileName := getFileName(newDBSegment)
+			filePath = createPath(fileName)
 			continue
 		}
 
@@ -119,7 +126,7 @@ func Update(index uint64, data []byte, manager *Manager) error {
 			updateErr = updateFile(getFileName(oldDBSegment), manager)
 		}()
 
-		dbFile, openErr := os.OpenFile(dbFileName, os.O_APPEND, fs.ModeAppend)
+		dbFile, openErr := os.OpenFile(dbFilePath, os.O_APPEND, fs.ModeAppend)
 		if openErr != nil {
 			panic(openErr)
 		}

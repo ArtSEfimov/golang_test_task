@@ -52,7 +52,14 @@ func (r *Repository) GetQuoteByID(id uint64) (Quote, error) {
 func (r *Repository) GetRandomQuote() (Quote, error) {
 	rs := rand.NewSource(time.Now().UnixNano())
 	newRand := rand.New(rs)
-	id := newRand.Uint64()%r.Database.ID + 1
+
+	var id uint64
+	for {
+		id = newRand.Uint64()%r.Database.ID + 1
+		if _, ok := r.Database.IndexMap[id]; ok {
+			break
+		}
+	}
 
 	var quote Quote
 	note, _ := r.Database.Read(id)
