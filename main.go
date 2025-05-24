@@ -1,38 +1,64 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"go_text_task/internal/quotes"
 	"go_text_task/pkg/db"
 	"math/rand"
+	"net/http"
 	"time"
 )
 
-func main() {
-	var buf bytes.Buffer
-	dbManager := db.NewManager()
+func startApp() {
+	quotesMux := http.NewServeMux()
 
-	for range 20 {
-		buf.Write(randomBytes(20))
-		dbManager.Create(buf.Bytes())
-		buf.Reset()
+	quotesServer := &http.Server{
+		Addr:    ":8080",
+		Handler: quotesMux,
 	}
 
-	fmt.Println(db.DataIndexes)
+	// DB init
+	quotesDB := db.NewManager()
 
-	r1, _ := dbManager.Read(1)
-	fmt.Println(string(r1))
-	r2, _ := dbManager.Read(2)
-	fmt.Println(string(r2))
+	// Quotes repository init
+	quotesRepository := quotes.NewRepository(quotesDB)
 
-	buf.Write(randomBytes(20))
-	dbManager.Update(1, buf.Bytes())
-	buf.Reset()
+	// Quotes handler init
+	quotes.NewHandler(quotesMux, quotesRepository)
 
-	r, _ := dbManager.Read(1)
-	fmt.Println(string(r))
+	fmt.Println("Quotes server listening at localhost:8080...")
+	if err := quotesServer.ListenAndServe(); err != nil {
+		fmt.Printf("quotes server err: %v\n", err)
+	}
+}
 
-	fmt.Println(db.DataIndexes)
+func main() {
+	startApp()
+	//startApp()
+	//var buf bytes.Buffer
+	//dbManager := db.NewManager()
+	//
+	//for range 20 {
+	//	buf.Write(randomBytes(20))
+	//	dbManager.Create(buf.Bytes())
+	//	buf.Reset()
+	//}
+	//
+	//fmt.Println(db.DataIndexes)
+	//
+	//r1, _ := dbManager.Read(1)
+	//fmt.Println(string(r1))
+	//r2, _ := dbManager.Read(2)
+	//fmt.Println(string(r2))
+	//
+	//buf.Write(randomBytes(20))
+	//dbManager.Update(1, buf.Bytes())
+	//buf.Reset()
+	//
+	//r, _ := dbManager.Read(1)
+	//fmt.Println(string(r))
+	//
+	//fmt.Println(db.DataIndexes)
 
 }
 func randomBytes(length int) []byte {

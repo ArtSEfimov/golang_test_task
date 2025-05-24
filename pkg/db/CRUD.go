@@ -2,12 +2,13 @@ package db
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
 )
 
-func Create(data []byte) error {
+func Create(data []byte, manager *Manager) error {
 
 	dataSize := uint64(len(data))
 
@@ -50,16 +51,18 @@ func Create(data []byte) error {
 		return flushErr
 	}
 
-	N++
-	DataIndexes[N] = indexInstance
+	manager.ID++
+	manager.IndexMap[manager.ID] = indexInstance
+
+	go manager.storeIndexes()
 
 	return nil
 }
 
-func Read(index uint64) ([]byte, error) {
-	dbSegment := DataIndexes[index].DBSegment
-	seek := DataIndexes[index].Seek
-	size := DataIndexes[index].Size
+func Read(index uint64, manager *Manager) ([]byte, error) {
+	dbSegment := manager.IndexMap[index].DBSegment
+	seek := manager.IndexMap[index].Seek
+	size := manager.IndexMap[index].Size
 
 	data := make([]byte, size)
 
@@ -87,7 +90,7 @@ func Read(index uint64) ([]byte, error) {
 }
 
 func Update(index uint64, data []byte, manager *Manager) error {
-	indexInstance := DataIndexes[index]
+	indexInstance := manager.IndexMap[index]
 	oldDBSegment := indexInstance.DBSegment
 
 	dataSize := uint64(len(data))
@@ -113,7 +116,7 @@ func Update(index uint64, data []byte, manager *Manager) error {
 			manager.mutex.Lock()
 			defer manager.mutex.Unlock()
 			defer manager.wg.Done()
-			updateErr = updateFile(getFileName(oldDBSegment))
+			updateErr = updateFile(getFileName(oldDBSegment), manager)
 		}()
 
 		dbFile, openErr := os.OpenFile(dbFileName, os.O_APPEND, fs.ModeAppend)
@@ -136,7 +139,7 @@ func Update(index uint64, data []byte, manager *Manager) error {
 			return writeErr
 		}
 
-		DataIndexes[index] = indexInstance
+		manager.IndexMap[index] = indexInstance
 
 		flushErr := writer.Flush()
 		if flushErr != nil {
@@ -154,13 +157,29 @@ func Update(index uint64, data []byte, manager *Manager) error {
 	}
 
 	manager.wg.Wait()
+
+	if updateErr != nil {
+		return updateErr
+	}
+
+	go manager.storeIndexes()
+
+	return nil
+}
+
+func Delete(index uint64, manager *Manager) error {
+	fileSegment := manager.IndexMap[index].DBSegment
+
+	if _, ok := manager.IndexMap[index]; !ok {
+		return fmt.Errorf("index %d not found", index)
+	}
+	delete(manager.IndexMap, index)
+	go manager.storeIndexes()
+
+	updateErr := updateFile(getFileName(fileSegment), manager)
 	if updateErr != nil {
 		return updateErr
 	}
 
 	return nil
-}
-
-func Delete(index uint64) {
-	delete(DataIndexes, index)
 }

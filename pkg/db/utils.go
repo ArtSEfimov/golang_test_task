@@ -59,7 +59,7 @@ func getFileSize(fileName string) uint64 {
 	return 0
 }
 
-func updateFile(oldFileName string) (updateFileErr error) {
+func updateFile(oldFileName string, manager *Manager) (updateFileErr error) {
 	fileSegment := getFileSegment(oldFileName)
 
 	newFileName := "tmp.db"
@@ -93,12 +93,12 @@ func updateFile(oldFileName string) (updateFileErr error) {
 
 	writer := bufio.NewWriter(dbFile)
 
-	for dbIndex, dataLocation := range DataIndexes {
+	for dbIndex, dataLocation := range manager.IndexMap {
 		if dataLocation.DBSegment != fileSegment {
 			continue
 		}
 
-		data, readErr := Read(dbIndex)
+		data, readErr := Read(dbIndex, manager)
 		if readErr != nil {
 			return readErr
 		}
@@ -115,13 +115,13 @@ func updateFile(oldFileName string) (updateFileErr error) {
 		if writeErr != nil {
 			return writeErr
 		}
+		flushErr := writer.Flush()
+		if flushErr != nil {
+			return flushErr
+		}
 
-		DataIndexes[dbIndex] = indexInstance
+		manager.IndexMap[dbIndex] = indexInstance
 
-	}
-	flushErr := writer.Flush()
-	if flushErr != nil {
-		return flushErr
 	}
 
 	removeErr := os.Remove(oldFileName)
@@ -143,7 +143,7 @@ func getValidFileName(fileName string, dataSizePointer *uint64) (string, error) 
 		return fileName, nil
 	}
 
-	if getFileSize(fileName)+(*dataSizePointer) > 100 {
+	if getFileSize(fileName)+(*dataSizePointer) > MaxFileSegmentSize {
 		segment := getFileSegment(fileName)
 		segment++
 		return getValidFileName(getFileName(segment), dataSizePointer)
