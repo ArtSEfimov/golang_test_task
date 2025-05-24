@@ -53,6 +53,8 @@ func NewManager() *Manager {
 		if decodeErr != nil {
 			if decodeErr == io.EOF {
 				log.Printf("database index file is empty: %v", decodeErr)
+				manager.IndexMap = make(map[uint64]DataLocation)
+				manager.ID = 0
 			} else {
 				panic(decodeErr)
 			}
