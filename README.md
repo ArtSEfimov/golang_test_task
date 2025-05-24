@@ -30,6 +30,7 @@ http://localhost:8080/quotes
 
 **PowerShell**
 
+```powershell
 Invoke-RestMethod -Uri 'http://localhost:8080/quotes' -Method GET
 ```
 
@@ -46,8 +47,8 @@ curl.exe http://localhost:8080/quotes
 **PowerShell**
 
 ```powershell
-Invoke-RestMethod \
-  -Uri 'http://localhost:8080/quotes/random' \
+Invoke-RestMethod `
+  -Uri 'http://localhost:8080/quotes/random' `
   -Method GET
 ```
 
@@ -66,8 +67,8 @@ Retrieve all quotes by Confucius:
 **PowerShell**
 
 ```powershell
-Invoke-RestMethod \
-  -Uri 'http://localhost:8080/quotes?author=Confucius' \
+Invoke-RestMethod `
+  -Uri 'http://localhost:8080/quotes?author=Confucius' `
   -Method GET
 ```
 
@@ -91,24 +92,17 @@ $body = @{
   quote  = 'Life is like riding a bicycle. To keep your balance you must keep moving.'
 }
 
-Invoke-RestMethod \
-  -Uri 'http://localhost:8080/quotes' \
-  -Method POST \
-  -ContentType 'application/json' \
+Invoke-RestMethod `
+  -Uri 'http://localhost:8080/quotes' `
+  -Method POST `
+  -ContentType 'application/json' `
   -Body (ConvertTo-Json $body)
 ```
 
 **curl.exe**
 
-```powershell
-$json = @'
-{"author":"Albert Einstein","quote":"Life is like riding a bicycle. To keep your balance you must keep moving."}
-'@
-
-curl.exe -X POST http://localhost:8080/quotes \
-  -H 'Content-Type: application/json' \
-  -d $json
-```
+We recommend using `Invoke-RestMethod` in PowerShell to send JSON POST requests.  
+Please see the example provided earlier in this document.
 
 ---
 
