@@ -30,10 +30,7 @@ http://localhost:8080/quotes
 
 **PowerShell**
 
-```powershell
-Invoke-RestMethod \
-  -Uri 'http://localhost:8080/quotes' \
-  -Method GET
+Invoke-RestMethod -Uri 'http://localhost:8080/quotes' -Method GET
 ```
 
 **curl.exe**
