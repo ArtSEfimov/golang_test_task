@@ -106,7 +106,38 @@ Please see the example provided earlier in this document.
 
 ---
 
-### 5. Delete a quote by ID
+### 5. Update a quote
+
+Replace `id`, `author` and `quote` with desired values.
+
+**PowerShell**
+
+```powershell
+$body = @{
+  author = 'Isaac Newton'
+  quote  = 'If I have seen further it is by standing on the shoulders of Giants.'
+}
+
+$jsonBody = $body | ConvertTo-Json -Depth 10
+
+$id = 1
+
+Invoke-RestMethod `
+  -Uri "http://localhost:8080/quotes/$id" `
+  -Method PUT `
+  -ContentType 'application/json' `
+  -Body $jsonBody
+
+```
+
+**curl.exe**
+
+We recommend using `Invoke-RestMethod` in PowerShell to send JSON PUT requests.  
+Please see the example provided earlier in this document.
+
+---
+
+### 6. Delete a quote by ID
 
 Replace `$id` with the quote's identifier.
 
