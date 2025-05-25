@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go_text_task/pkg/db"
+	"log"
 	"math/rand"
 	"time"
 )
@@ -88,7 +89,11 @@ func (r *Repository) GetByAuthor(author string) ([]Quote, error) {
 	return quotes, nil
 }
 
-func (r *Repository) Create(quote Quote) (Quote, error) {
+func (r *Repository) Create(payload QuoteRequest) (Quote, error) {
+	quote := Quote{
+		Author:    payload.Author,
+		QuoteText: payload.QuoteText,
+	}
 	quote.CreatedAt = time.Now().Format(layout)
 	quote.UpdatedAt = time.Now().Format(layout)
 	quote.ID = r.Database.GetID() + 1
@@ -96,13 +101,38 @@ func (r *Repository) Create(quote Quote) (Quote, error) {
 	if encodeErr != nil {
 		return Quote{}, encodeErr
 	}
-	creationErr := r.Database.Create(data)
-	if creationErr != nil {
-		return Quote{}, creationErr
+	createErr := r.Database.Create(data)
+	if createErr != nil {
+		return Quote{}, createErr
 	}
 	return quote, nil
 }
 
 func (r *Repository) Delete(id uint64) error {
 	return r.Database.Delete(id)
+}
+
+func (r *Repository) Update(id uint64, payload QuoteRequest) (Quote, error) {
+
+	quote, getErr := r.GetQuoteByID(id)
+	if getErr != nil {
+		return Quote{}, getErr
+	}
+
+	quote.Author = payload.Author
+	quote.QuoteText = payload.QuoteText
+	quote.UpdatedAt = time.Now().Format(layout)
+
+	go func() {
+		var data []byte
+		var updateErr error
+		data, updateErr = json.Marshal(quote)
+		updateErr = r.Database.Update(id, data)
+		if updateErr != nil {
+			log.Println("updating error: ", updateErr)
+		}
+	}()
+
+	return quote, nil
+
 }
