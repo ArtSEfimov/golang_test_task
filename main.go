@@ -2,10 +2,18 @@ package main
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"go_text_task/internal/quotes"
 	"go_text_task/pkg/db"
 	"net/http"
 )
+
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
+}
 
 func startApp() {
 	quotesMux := http.NewServeMux()

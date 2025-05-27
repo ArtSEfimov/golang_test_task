@@ -1,13 +1,26 @@
-package double_linked_list
+package linked_list
+
+import (
+	"go_text_task/pkg/files"
+	"sync"
+)
 
 type DoubleLinkedList struct {
-	Head *Node
-	Tail *Node
-	Size uint
+	Head  *Node
+	Tail  *Node
+	Size  uint
+	mutex *sync.Mutex
 }
 
 func NewDoubleLinkedList() *DoubleLinkedList {
-	return &DoubleLinkedList{}
+	OrderedMap = make(map[uint64]*Node)
+	dll := &DoubleLinkedList{}
+	dll.mutex = new(sync.Mutex)
+	if files.IsFileExists(createPath(LinkedListFileName)) {
+		recoverOrderedMap(dll)
+	}
+
+	return dll
 }
 
 func (dl *DoubleLinkedList) GetSize() uint {
@@ -28,8 +41,11 @@ func (dl *DoubleLinkedList) Append(id uint64) {
 		Next:  nil,
 		Prev:  nil,
 	}
-
-	dl.Size++
+	defer func() {
+		OrderedMap[id] = newNode
+		dl.Size++
+		go storeOrderedMap(dl)
+	}()
 
 	if dl.Head == nil {
 		dl.Head = newNode
@@ -41,7 +57,6 @@ func (dl *DoubleLinkedList) Append(id uint64) {
 	newNode.Prev = dl.Tail
 	dl.Tail = newNode
 
-	OrderedMap[id] = newNode
 }
 
 func (dl *DoubleLinkedList) Remove(id uint64) {
@@ -49,11 +64,12 @@ func (dl *DoubleLinkedList) Remove(id uint64) {
 		return
 	}
 
-	dl.Size--
-
 	node := OrderedMap[id]
 
 	delete(OrderedMap, id)
+	go storeOrderedMap(dl)
+
+	defer func() { dl.Size-- }()
 
 	if node == dl.Head {
 		if node == dl.Tail {

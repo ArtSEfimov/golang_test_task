@@ -23,7 +23,9 @@ func NewRepository(database *db.Manager) *Repository {
 
 func (r *Repository) GetAll() ([]Quote, error) {
 	var quotes []Quote
-	for dbIndex := range r.Database.IndexMap {
+
+	for node := r.Database.DL.Head; node != nil; node = node.Next {
+		dbIndex := node.Value
 		var quote Quote
 		note, _ := r.Database.Read(dbIndex)
 		decodeErr := json.Unmarshal(note, &quote)
@@ -75,7 +77,9 @@ func (r *Repository) GetRandomQuote() (Quote, error) {
 
 func (r *Repository) GetByAuthor(author string) ([]Quote, error) {
 	var quotes []Quote
-	for dbIndex := range r.Database.IndexMap {
+
+	for node := r.Database.DL.Head; node != nil; node = node.Next {
+		dbIndex := node.Value
 		var quote Quote
 		note, _ := r.Database.Read(dbIndex)
 		decodeErr := json.Unmarshal(note, &quote)

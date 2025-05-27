@@ -3,6 +3,7 @@ package db
 import (
 	"bufio"
 	"fmt"
+	"go_text_task/pkg/files"
 	"io"
 	"io/fs"
 	"os"
@@ -12,14 +13,14 @@ func Create(data []byte, manager *Manager) error {
 
 	dataSize := uint64(len(data))
 
-	filePath := createPath(OriginalFileName)
+	filePath := createPath(OriginalDataBaseFileName)
 
 	dbFilePath, creationErr := getValidFileName(filePath, &dataSize)
 	if creationErr != nil {
 		panic(creationErr)
 	}
 
-	dbSegment := getFileSegment(dbFilePath)
+	dbSegment := files.GetFileSegment(dbFilePath)
 
 	dbFile, openErr := os.OpenFile(dbFilePath, os.O_APPEND, fs.ModeAppend)
 	if openErr != nil {
@@ -55,6 +56,7 @@ func Create(data []byte, manager *Manager) error {
 
 	manager.ID++
 	manager.IndexMap[manager.ID] = indexInstance
+	manager.DL.Append(manager.ID)
 
 	go manager.storeIndexes()
 
@@ -68,7 +70,7 @@ func Read(index uint64, manager *Manager) ([]byte, error) {
 
 	data := make([]byte, size)
 
-	fileName := getFileName(dbSegment)
+	fileName := files.GetFileName(dbSegment)
 	filePath := createPath(fileName)
 
 	dbFile, openErr := os.OpenFile(filePath, os.O_RDONLY, fs.ModePerm)
@@ -100,7 +102,7 @@ func Update(index uint64, data []byte, manager *Manager) error {
 
 	dataSize := uint64(len(data))
 
-	filePath := createPath(OriginalFileName)
+	filePath := createPath(OriginalDataBaseFileName)
 
 	var updateErr error
 
@@ -109,11 +111,11 @@ func Update(index uint64, data []byte, manager *Manager) error {
 		if creationErr != nil {
 			panic(creationErr)
 		}
-		newDBSegment := getFileSegment(dbFilePath)
+		newDBSegment := files.GetFileSegment(dbFilePath)
 
 		if newDBSegment == oldDBSegment {
 			newDBSegment++
-			fileName := getFileName(newDBSegment)
+			fileName := files.GetFileName(newDBSegment)
 			filePath = createPath(fileName)
 			continue
 		}
@@ -123,7 +125,7 @@ func Update(index uint64, data []byte, manager *Manager) error {
 			manager.mutex.Lock()
 			defer manager.mutex.Unlock()
 			defer manager.wg.Done()
-			updateErr = updateFile(getFileName(oldDBSegment), manager)
+			updateErr = updateFile(files.GetFileName(oldDBSegment), manager)
 		}()
 
 		dbFile, openErr := os.OpenFile(dbFilePath, os.O_APPEND, fs.ModeAppend)
@@ -180,10 +182,13 @@ func Delete(index uint64, manager *Manager) error {
 	if _, ok := manager.IndexMap[index]; !ok {
 		return fmt.Errorf("index %d not found", index)
 	}
+
 	delete(manager.IndexMap, index)
+	manager.DL.Remove(index)
+
 	go manager.storeIndexes()
 
-	updateErr := updateFile(getFileName(fileSegment), manager)
+	updateErr := updateFile(files.GetFileName(fileSegment), manager)
 	if updateErr != nil {
 		return updateErr
 	}

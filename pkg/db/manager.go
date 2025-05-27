@@ -3,13 +3,11 @@ package db
 import (
 	"bufio"
 	"encoding/json"
-	"io"
-	"log"
+	"go_text_task/pkg/db/linked_list"
+	"go_text_task/pkg/files"
 	"os"
 	"sync"
 )
-
-var IndexFilePath = createPath(IndexFileName)
 
 type Storage struct {
 	ID       uint64
@@ -19,30 +17,24 @@ type Manager struct {
 	Storage
 	wg    sync.WaitGroup
 	mutex sync.RWMutex
-}
-
-func (m *Manager) GetID() uint64 {
-	return m.ID
+	DL    *linked_list.DoubleLinkedList
 }
 
 func NewManager() *Manager {
 
 	manager := Manager{}
+	manager.DL = linked_list.NewDoubleLinkedList()
 
-	if !isFileExists(IndexFilePath) {
-		creationErr := createFile(IndexFileName)
-		if creationErr != nil {
-			panic(creationErr)
-		}
+	if !files.IsFileExists(createPath(IndexFileName)) {
 		manager.IndexMap = make(map[uint64]DataLocation)
 		manager.ID = 0
 	} else {
-		indexFile, openErr := os.Open(IndexFilePath)
+		indexFile, openErr := os.Open(createPath(IndexFileName))
 		if openErr != nil {
 			panic(openErr)
 		}
-		defer func(indexFile *os.File) {
-			closeErr := indexFile.Close()
+		defer func(file *os.File) {
+			closeErr := file.Close()
 			if closeErr != nil {
 				panic(closeErr)
 			}
@@ -51,23 +43,21 @@ func NewManager() *Manager {
 		fileReader := bufio.NewReader(indexFile)
 		decodeErr := json.NewDecoder(fileReader).Decode(&manager.Storage)
 		if decodeErr != nil {
-			if decodeErr == io.EOF {
-				log.Printf("database index file is empty: %v", decodeErr)
-				manager.IndexMap = make(map[uint64]DataLocation)
-				manager.ID = 0
-			} else {
-				panic(decodeErr)
-			}
+			panic(decodeErr)
 		}
 	}
 
 	return &manager
 }
 
+func (m *Manager) GetID() uint64 {
+	return m.ID
+}
+
 func (m *Manager) storeIndexes() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	indexFile, creationErr := os.Create(IndexFilePath)
+	indexFile, creationErr := os.Create(createPath(IndexFileName))
 	if creationErr != nil {
 		panic(creationErr)
 	}
