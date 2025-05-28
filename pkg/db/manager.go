@@ -15,15 +15,26 @@ type Storage struct {
 }
 type Manager struct {
 	Storage
-	wg    sync.WaitGroup
-	mutex sync.RWMutex
 	DL    *linked_list.DoubleLinkedList
+	wg    *sync.WaitGroup
+	mtx   *sync.RWMutex
+	tasks chan func()
 }
 
 func NewManager() *Manager {
 
+	tasks := make(chan func(), 3)
+	go func(tasks chan func()) {
+		for nextTask := range tasks {
+			nextTask()
+		}
+	}(tasks)
+
 	manager := Manager{}
+	manager.wg = new(sync.WaitGroup)
+	manager.mtx = new(sync.RWMutex)
 	manager.DL = linked_list.NewDoubleLinkedList()
+	manager.tasks = tasks
 
 	if !files.IsFileExists(createPath(IndexFileName)) {
 		manager.IndexMap = make(map[uint64]DataLocation)
@@ -55,8 +66,7 @@ func (m *Manager) GetID() uint64 {
 }
 
 func (m *Manager) storeIndexes() {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+
 	indexFile, creationErr := os.Create(createPath(IndexFileName))
 	if creationErr != nil {
 		panic(creationErr)
@@ -74,9 +84,9 @@ func (m *Manager) storeIndexes() {
 		panic(encodingErr)
 	}
 
-	err := writer.Flush()
-	if err != nil {
-		panic(err)
+	flushErr := writer.Flush()
+	if flushErr != nil {
+		panic(flushErr)
 	}
 
 }

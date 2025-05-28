@@ -58,7 +58,7 @@ func Create(data []byte, manager *Manager) error {
 	manager.IndexMap[manager.ID] = indexInstance
 	manager.DL.Append(manager.ID)
 
-	go manager.storeIndexes()
+	manager.tasks <- manager.storeIndexes
 
 	return nil
 }
@@ -122,8 +122,8 @@ func Update(index uint64, data []byte, manager *Manager) error {
 
 		manager.wg.Add(1)
 		go func() {
-			manager.mutex.Lock()
-			defer manager.mutex.Unlock()
+			manager.mtx.Lock()
+			defer manager.mtx.Unlock()
 			defer manager.wg.Done()
 			updateErr = updateFile(files.GetFileName(oldDBSegment), manager)
 		}()
@@ -171,7 +171,7 @@ func Update(index uint64, data []byte, manager *Manager) error {
 		return updateErr
 	}
 
-	go manager.storeIndexes()
+	manager.tasks <- manager.storeIndexes
 
 	return nil
 }
@@ -186,7 +186,7 @@ func Delete(index uint64, manager *Manager) error {
 	delete(manager.IndexMap, index)
 	manager.DL.Remove(index)
 
-	go manager.storeIndexes()
+	manager.tasks <- manager.storeIndexes
 
 	updateErr := updateFile(files.GetFileName(fileSegment), manager)
 	if updateErr != nil {
