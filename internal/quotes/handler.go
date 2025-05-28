@@ -82,6 +82,7 @@ func (handler *Handler) GetRandom() http.HandlerFunc {
 
 func (handler *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		var payload QuoteRequest
 		decodeErr := json.NewDecoder(r.Body).Decode(&payload)
 		if decodeErr != nil {
@@ -90,14 +91,14 @@ func (handler *Handler) Create() http.HandlerFunc {
 			return
 		}
 
-		createdQuote, creationErr := handler.Repository.Create(payload)
+		createdQuote, creationErr := handler.Repository.Create(&payload)
 		if creationErr != nil {
 			e := fmt.Errorf("creation error: %w", creationErr)
 			http.Error(w, e.Error(), http.StatusBadGateway)
 			return
 		}
-		response.Json(w, createdQuote, http.StatusCreated)
 
+		response.Json(w, createdQuote, http.StatusCreated)
 	}
 }
 func (handler *Handler) Delete() http.HandlerFunc {
@@ -116,17 +117,19 @@ func (handler *Handler) Delete() http.HandlerFunc {
 			return
 		}
 
-		response.Json(w, nil, http.StatusOK)
+		response.Json(w, nil, http.StatusNoContent)
 	}
 }
 func (handler *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		idString := r.PathValue("id")
 		id, parseErr := strconv.ParseUint(idString, 10, 64)
 		if parseErr != nil {
 			http.Error(w, parseErr.Error(), http.StatusBadRequest)
 			return
 		}
+
 		var payload QuoteRequest
 		decodeErr := json.NewDecoder(r.Body).Decode(&payload)
 		if decodeErr != nil {
@@ -135,13 +138,13 @@ func (handler *Handler) Update() http.HandlerFunc {
 			return
 		}
 
-		updatedQuote, updateErr := handler.Repository.Update(id, payload)
+		updatedQuote, updateErr := handler.Repository.Update(id, &payload)
 		if updateErr != nil {
 			e := fmt.Errorf("updating error: %w", updateErr)
 			http.Error(w, e.Error(), http.StatusBadGateway)
 			return
 		}
-		response.Json(w, updatedQuote, http.StatusOK)
 
+		response.Json(w, updatedQuote, http.StatusOK)
 	}
 }
