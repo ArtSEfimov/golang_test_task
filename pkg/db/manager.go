@@ -3,16 +3,20 @@ package db
 import (
 	"bufio"
 	"encoding/json"
+	"go_text_task/pkg/db/config"
 	"go_text_task/pkg/db/linked_list"
 	"go_text_task/pkg/files"
 	"os"
 	"sync"
 )
 
-type Storage struct {
-	ID       uint64
-	IndexMap map[uint64]DataLocation
-}
+var (
+	IndexFileName            string
+	OriginalDataBaseFileName string
+	MaxFileSegmentSize       uint64
+	DataBaseDir              string
+)
+
 type Manager struct {
 	Storage
 	DL    *linked_list.DoubleLinkedList
@@ -21,7 +25,12 @@ type Manager struct {
 	tasks chan func()
 }
 
-func NewManager() *Manager {
+func NewManager(config *config.Config) *Manager {
+
+	IndexFileName = config.GetIndexFileName()
+	OriginalDataBaseFileName = config.GetOriginalDBFileName()
+	MaxFileSegmentSize = config.GetMaxFileSegmentSize()
+	DataBaseDir = config.GetDBDir()
 
 	tasks := make(chan func(), 3)
 	go func(tasks chan func()) {
@@ -63,32 +72,6 @@ func NewManager() *Manager {
 
 func (m *Manager) GetID() uint64 {
 	return m.ID
-}
-
-func (m *Manager) storeIndexes() {
-
-	indexFile, creationErr := os.Create(createPath(IndexFileName))
-	if creationErr != nil {
-		panic(creationErr)
-	}
-	defer func(indexFile *os.File) {
-		closeErr := indexFile.Close()
-		if closeErr != nil {
-			panic(closeErr)
-		}
-	}(indexFile)
-
-	writer := bufio.NewWriter(indexFile)
-	encodingErr := json.NewEncoder(writer).Encode(m.Storage)
-	if encodingErr != nil {
-		panic(encodingErr)
-	}
-
-	flushErr := writer.Flush()
-	if flushErr != nil {
-		panic(flushErr)
-	}
-
 }
 
 func (m *Manager) Create(data []byte) error {

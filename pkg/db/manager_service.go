@@ -2,19 +2,41 @@ package db
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"go_text_task/pkg/files"
 	"io"
 	"io/fs"
 	"os"
-	"path/filepath"
 )
 
-func createPath(fileName string) string {
-	return files.MakePath(os.Getenv("DATABASE_DIR"), fileName)
+func (m *Manager) storeIndexes() {
+
+	indexFile, creationErr := os.Create(createPath(IndexFileName))
+	if creationErr != nil {
+		panic(creationErr)
+	}
+	defer func(indexFile *os.File) {
+		closeErr := indexFile.Close()
+		if closeErr != nil {
+			panic(closeErr)
+		}
+	}(indexFile)
+
+	writer := bufio.NewWriter(indexFile)
+	encodingErr := json.NewEncoder(writer).Encode(m.Storage)
+	if encodingErr != nil {
+		panic(encodingErr)
+	}
+
+	flushErr := writer.Flush()
+	if flushErr != nil {
+		panic(flushErr)
+	}
+
 }
 
-func updateFile(oldFileName string, manager *Manager) (updateFileErr error) {
+func (m *Manager) updateFile(oldFileName string) (updateFileErr error) {
 	fileSegment := files.GetFileSegment(oldFileName)
 
 	newFileName := "tmp.db"
@@ -33,7 +55,7 @@ func updateFile(oldFileName string, manager *Manager) (updateFileErr error) {
 		}
 	}()
 
-	files.CreateFile(os.Getenv("DATABASE_DIR"), newFileName)
+	files.CreateFile(DataBaseDir, newFileName)
 
 	dbFile, openErr := os.OpenFile(newFilePath, os.O_APPEND, fs.ModeAppend)
 	if openErr != nil {
@@ -49,12 +71,12 @@ func updateFile(oldFileName string, manager *Manager) (updateFileErr error) {
 
 	writer := bufio.NewWriter(dbFile)
 
-	for dbIndex, dataLocation := range manager.IndexMap {
+	for dbIndex, dataLocation := range m.IndexMap {
 		if dataLocation.DBSegment != fileSegment {
 			continue
 		}
 
-		data, readErr := Read(dbIndex, manager)
+		data, readErr := m.Read(dbIndex)
 		if readErr != nil {
 			return readErr
 		}
@@ -76,7 +98,7 @@ func updateFile(oldFileName string, manager *Manager) (updateFileErr error) {
 			return flushErr
 		}
 
-		manager.IndexMap[dbIndex] = indexInstance
+		m.IndexMap[dbIndex] = indexInstance
 
 	}
 
@@ -87,20 +109,4 @@ func updateFile(oldFileName string, manager *Manager) (updateFileErr error) {
 
 	return nil
 
-}
-
-func getValidFileName(filePath string, dataSizePointer *uint64) (string, error) {
-
-	if !files.IsFileExists(filePath) {
-		files.CreateFile(os.Getenv("DATABASE_DIR"), filepath.Base(filePath))
-		return filePath, nil
-	}
-
-	if files.GetFileSize(filePath)+(*dataSizePointer) > MaxFileSegmentSize {
-		segment := files.GetFileSegment(filePath)
-		segment++
-		fileName := files.GetFileName(segment)
-		return getValidFileName(createPath(fileName), dataSizePointer)
-	}
-	return filePath, nil
 }

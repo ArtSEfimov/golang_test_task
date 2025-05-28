@@ -5,6 +5,7 @@ import (
 	"github.com/joho/godotenv"
 	"go_text_task/internal/quotes"
 	"go_text_task/pkg/db"
+	"go_text_task/pkg/db/config"
 	"net/http"
 )
 
@@ -16,6 +17,8 @@ func init() {
 }
 
 func startApp() {
+	quotesConfig := config.NewConfig()
+
 	quotesMux := http.NewServeMux()
 
 	quotesServer := &http.Server{
@@ -24,7 +27,7 @@ func startApp() {
 	}
 
 	// DB init
-	quotesDB := db.NewManager()
+	quotesDB := db.NewManager(quotesConfig)
 
 	// Quotes repository init
 	quotesRepository := quotes.NewRepository(quotesDB)

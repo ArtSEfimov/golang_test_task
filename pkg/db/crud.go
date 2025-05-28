@@ -125,7 +125,7 @@ func Update(index uint64, data []byte, manager *Manager) error {
 			manager.mtx.Lock()
 			defer manager.mtx.Unlock()
 			defer manager.wg.Done()
-			updateErr = updateFile(files.GetFileName(oldDBSegment), manager)
+			updateErr = manager.updateFile(files.GetFileName(oldDBSegment))
 		}()
 
 		dbFile, openErr := os.OpenFile(dbFilePath, os.O_APPEND, fs.ModeAppend)
@@ -188,7 +188,7 @@ func Delete(index uint64, manager *Manager) error {
 
 	manager.tasks <- manager.storeIndexes
 
-	updateErr := updateFile(files.GetFileName(fileSegment), manager)
+	updateErr := manager.updateFile(files.GetFileName(fileSegment))
 	if updateErr != nil {
 		return updateErr
 	}
