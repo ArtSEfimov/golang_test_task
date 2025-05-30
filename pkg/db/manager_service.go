@@ -22,7 +22,6 @@ func (m *Manager) storeIndexes() {
 			panic(closeErr)
 		}
 	}(indexFile)
-
 	writer := bufio.NewWriter(indexFile)
 	encodingErr := json.NewEncoder(writer).Encode(m.Storage)
 	if encodingErr != nil {
@@ -71,6 +70,7 @@ func (m *Manager) updateFile(oldFileName string) (updateFileErr error) {
 
 	writer := bufio.NewWriter(dbFile)
 
+	m.mtx.Lock()
 	for dbIndex, dataLocation := range m.IndexMap {
 		if dataLocation.DBSegment != fileSegment {
 			continue
@@ -101,6 +101,7 @@ func (m *Manager) updateFile(oldFileName string) (updateFileErr error) {
 		m.IndexMap[dbIndex] = indexInstance
 
 	}
+	m.mtx.Unlock()
 
 	removeErr := os.Remove(oldFilePath)
 	if removeErr != nil {

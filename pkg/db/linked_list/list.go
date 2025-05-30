@@ -2,20 +2,26 @@ package linked_list
 
 import (
 	"go_text_task/pkg/files"
-	"sync"
 )
 
 type DoubleLinkedList struct {
-	Head  *Node
-	Tail  *Node
-	Size  uint
-	mutex *sync.Mutex
+	Head *Node
+	Tail *Node
+	Size uint64
 }
 
 func NewDoubleLinkedList() *DoubleLinkedList {
 	OrderedMap = make(map[uint64]*Node)
+
+	//tasks := make(chan func())
+	//go func(tasks chan func()) {
+	//	for nextTask := range tasks {
+	//		nextTask()
+	//	}
+	//}(tasks)
+
 	dll := &DoubleLinkedList{}
-	dll.mutex = new(sync.Mutex)
+	//dll.tasks = tasks
 	if files.IsFileExists(createPath(LinkedListFileName)) {
 		recoverOrderedMap(dll)
 	}
@@ -23,7 +29,7 @@ func NewDoubleLinkedList() *DoubleLinkedList {
 	return dll
 }
 
-func (dl *DoubleLinkedList) GetSize() uint {
+func (dl *DoubleLinkedList) GetSize() uint64 {
 	return dl.Size
 }
 
@@ -41,10 +47,12 @@ func (dl *DoubleLinkedList) Append(id uint64) {
 		Next:  nil,
 		Prev:  nil,
 	}
+
 	defer func() {
 		OrderedMap[id] = newNode
 		dl.Size++
-		go storeOrderedMap(dl)
+		promise := storeOrderedMap(dl)
+		<-promise
 	}()
 
 	if dl.Head == nil {
@@ -65,11 +73,13 @@ func (dl *DoubleLinkedList) Remove(id uint64) {
 	}
 
 	node := OrderedMap[id]
-
 	delete(OrderedMap, id)
-	go storeOrderedMap(dl)
 
-	defer func() { dl.Size-- }()
+	promise := storeOrderedMap(dl)
+
+	defer func() {
+		dl.Size--
+	}()
 
 	if node == dl.Head {
 		if node == dl.Tail {
@@ -94,4 +104,6 @@ func (dl *DoubleLinkedList) Remove(id uint64) {
 	next := node.Next
 	next.Prev = prev
 	prev.Next = next
+
+	<-promise
 }

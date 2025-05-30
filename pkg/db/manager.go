@@ -32,7 +32,7 @@ func NewManager(config *config.Config) *Manager {
 	MaxFileSegmentSize = config.GetMaxFileSegmentSize()
 	DataBaseDir = config.GetDBDir()
 
-	tasks := make(chan func(), 3)
+	tasks := make(chan func())
 	go func(tasks chan func()) {
 		for nextTask := range tasks {
 			nextTask()

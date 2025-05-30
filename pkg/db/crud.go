@@ -54,9 +54,11 @@ func Create(data []byte, manager *Manager) error {
 		return flushErr
 	}
 
-	manager.ID++
-	manager.IndexMap[manager.ID] = indexInstance
-	manager.DL.Append(manager.ID)
+	manager.tasks <- func() {
+		manager.ID++
+		manager.IndexMap[manager.ID] = indexInstance
+		manager.DL.Append(manager.ID)
+	}
 
 	manager.tasks <- manager.storeIndexes
 
@@ -64,9 +66,11 @@ func Create(data []byte, manager *Manager) error {
 }
 
 func Read(index uint64, manager *Manager) ([]byte, error) {
+	manager.mtx.RLock()
 	dbSegment := manager.IndexMap[index].DBSegment
 	seek := manager.IndexMap[index].Seek
 	size := manager.IndexMap[index].Size
+	manager.mtx.RUnlock()
 
 	data := make([]byte, size)
 
@@ -97,7 +101,10 @@ func Read(index uint64, manager *Manager) ([]byte, error) {
 }
 
 func Update(index uint64, data []byte, manager *Manager) error {
+	manager.mtx.RLock()
 	indexInstance := manager.IndexMap[index]
+	manager.mtx.RUnlock()
+
 	oldDBSegment := indexInstance.DBSegment
 
 	dataSize := uint64(len(data))
@@ -122,8 +129,6 @@ func Update(index uint64, data []byte, manager *Manager) error {
 
 		manager.wg.Add(1)
 		go func() {
-			manager.mtx.Lock()
-			defer manager.mtx.Unlock()
 			defer manager.wg.Done()
 			updateErr = manager.updateFile(files.GetFileName(oldDBSegment))
 		}()
@@ -148,7 +153,9 @@ func Update(index uint64, data []byte, manager *Manager) error {
 			return writeErr
 		}
 
+		manager.mtx.Lock()
 		manager.IndexMap[index] = indexInstance
+		manager.mtx.Unlock()
 
 		flushErr := writer.Flush()
 		if flushErr != nil {
@@ -177,21 +184,28 @@ func Update(index uint64, data []byte, manager *Manager) error {
 }
 
 func Delete(index uint64, manager *Manager) error {
-	fileSegment := manager.IndexMap[index].DBSegment
-
-	if _, ok := manager.IndexMap[index]; !ok {
+	manager.mtx.RLock()
+	dataLocation, ok := manager.IndexMap[index]
+	if !ok {
+		manager.mtx.RUnlock()
 		return fmt.Errorf("index %d not found", index)
 	}
+	manager.mtx.RUnlock()
 
+	fileSegment := dataLocation.DBSegment
+
+	manager.mtx.Lock()
 	delete(manager.IndexMap, index)
-	manager.DL.Remove(index)
+	manager.mtx.Unlock()
 
-	manager.tasks <- manager.storeIndexes
+	manager.DL.Remove(index)
 
 	updateErr := manager.updateFile(files.GetFileName(fileSegment))
 	if updateErr != nil {
 		return updateErr
 	}
+
+	manager.tasks <- manager.storeIndexes
 
 	return nil
 }
