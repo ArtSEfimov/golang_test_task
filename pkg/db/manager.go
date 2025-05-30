@@ -22,7 +22,8 @@ type Manager struct {
 	DL    *linked_list.DoubleLinkedList
 	wg    *sync.WaitGroup
 	mtx   *sync.RWMutex
-	tasks chan func()
+	Tasks chan func()
+	Done  chan struct{}
 }
 
 func NewManager(config *config.Config) *Manager {
@@ -33,17 +34,20 @@ func NewManager(config *config.Config) *Manager {
 	DataBaseDir = config.GetDBDir()
 
 	tasks := make(chan func())
-	go func(tasks chan func()) {
+	done := make(chan struct{})
+	go func() {
 		for nextTask := range tasks {
 			nextTask()
 		}
-	}(tasks)
+		done <- struct{}{}
+	}()
 
 	manager := Manager{}
 	manager.wg = new(sync.WaitGroup)
 	manager.mtx = new(sync.RWMutex)
 	manager.DL = linked_list.NewDoubleLinkedList()
-	manager.tasks = tasks
+	manager.Tasks = tasks
+	manager.Done = done
 
 	if !files.IsFileExists(createPath(IndexFileName)) {
 		manager.IndexMap = make(map[uint64]DataLocation)

@@ -54,13 +54,13 @@ func Create(data []byte, manager *Manager) error {
 		return flushErr
 	}
 
-	manager.tasks <- func() {
+	manager.Tasks <- func() {
 		manager.ID++
 		manager.IndexMap[manager.ID] = indexInstance
 		manager.DL.Append(manager.ID)
 	}
 
-	manager.tasks <- manager.storeIndexes
+	manager.Tasks <- manager.storeIndexes
 
 	return nil
 }
@@ -178,7 +178,7 @@ func Update(index uint64, data []byte, manager *Manager) error {
 		return updateErr
 	}
 
-	manager.tasks <- manager.storeIndexes
+	manager.Tasks <- manager.storeIndexes
 
 	return nil
 }
@@ -205,7 +205,7 @@ func Delete(index uint64, manager *Manager) error {
 		return updateErr
 	}
 
-	manager.tasks <- manager.storeIndexes
+	manager.Tasks <- manager.storeIndexes
 
 	return nil
 }

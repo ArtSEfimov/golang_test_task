@@ -9,28 +9,46 @@ import (
 )
 
 func GetProjectRootDir() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
 	for {
-		if info, infoErr := os.Stat("main.go"); infoErr == nil && !info.IsDir() {
-			dir, wdErr := os.Getwd()
-			if wdErr != nil {
-				panic(wdErr)
-			}
+		candidate := filepath.Join(dir, "main.go")
+
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
 			return dir
 		}
 
-		dir, wdErr := os.Getwd()
-		if wdErr != nil {
-			panic(wdErr)
-		}
 		parent := filepath.Dir(dir)
-		if dir == parent {
-			panic(fmt.Errorf("cannot find root directory"))
+		if parent == dir {
+			panic("cannot find project root: main.go not found")
 		}
-
-		if err := os.Chdir(".."); err != nil {
-			panic(err)
-		}
+		dir = parent
 	}
+	//for {
+	//	if info, infoErr := os.Stat("main.go"); infoErr == nil && !info.IsDir() {
+	//		dir, wdErr := os.Getwd()
+	//		if wdErr != nil {
+	//			panic(wdErr)
+	//		}
+	//		return dir
+	//	}
+	//
+	//	dir, wdErr := os.Getwd()
+	//	if wdErr != nil {
+	//		panic(wdErr)
+	//	}
+	//	parent := filepath.Dir(dir)
+	//	if dir == parent {
+	//		panic(fmt.Errorf("cannot find root directory"))
+	//	}
+	//
+	//	if err := os.Chdir(".."); err != nil {
+	//		panic(err)
+	//	}
+	//	//dir = parent
+	//}
 }
 
 func IsFileExists(filePath string) bool {
