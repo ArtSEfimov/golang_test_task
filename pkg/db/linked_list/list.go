@@ -51,8 +51,7 @@ func (dl *DoubleLinkedList) Append(id uint64) {
 	defer func() {
 		OrderedMap[id] = newNode
 		dl.Size++
-		promise := storeOrderedMap(dl)
-		<-promise
+		storeOrderedMap(dl)
 	}()
 
 	if dl.Head == nil {
@@ -74,12 +73,10 @@ func (dl *DoubleLinkedList) Remove(id uint64) {
 
 	node := OrderedMap[id]
 	delete(OrderedMap, id)
-
-	promise := storeOrderedMap(dl)
+	dl.Size--
 
 	defer func() {
-		<-promise
-		dl.Size--
+		storeOrderedMap(dl)
 	}()
 
 	if node == dl.Head {

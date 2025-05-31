@@ -101,10 +101,9 @@ func Read(index uint64, manager *Manager) ([]byte, error) {
 }
 
 func Update(index uint64, data []byte, manager *Manager) error {
-	manager.mtx.RLock()
-	indexInstance := manager.IndexMap[index]
-	manager.mtx.RUnlock()
+	manager.mtx.Lock()
 
+	indexInstance := manager.IndexMap[index]
 	oldDBSegment := indexInstance.DBSegment
 
 	dataSize := uint64(len(data))
@@ -127,12 +126,6 @@ func Update(index uint64, data []byte, manager *Manager) error {
 			continue
 		}
 
-		manager.wg.Add(1)
-		go func() {
-			defer manager.wg.Done()
-			updateErr = manager.updateFile(files.GetFileName(oldDBSegment))
-		}()
-
 		dbFile, openErr := os.OpenFile(dbFilePath, os.O_APPEND, fs.ModeAppend)
 		if openErr != nil {
 			panic(openErr)
@@ -153,9 +146,14 @@ func Update(index uint64, data []byte, manager *Manager) error {
 			return writeErr
 		}
 
-		manager.mtx.Lock()
 		manager.IndexMap[index] = indexInstance
 		manager.mtx.Unlock()
+
+		manager.wg.Add(1)
+		go func() {
+			defer manager.wg.Done()
+			updateErr = manager.updateFile(files.GetFileName(oldDBSegment))
+		}()
 
 		flushErr := writer.Flush()
 		if flushErr != nil {
@@ -172,13 +170,13 @@ func Update(index uint64, data []byte, manager *Manager) error {
 		break
 	}
 
+	manager.Tasks <- manager.storeIndexes
+
 	manager.wg.Wait()
 
 	if updateErr != nil {
 		return updateErr
 	}
-
-	manager.Tasks <- manager.storeIndexes
 
 	return nil
 }
@@ -192,9 +190,9 @@ func Delete(index uint64, manager *Manager) error {
 		return fmt.Errorf("index %d not found", index)
 	}
 	delete(manager.IndexMap, index)
-	manager.DL.Remove(index)
-
 	manager.mtx.Unlock()
+
+	manager.DL.Remove(index)
 
 	fileSegment := dataLocation.DBSegment
 	updateErr := manager.updateFile(files.GetFileName(fileSegment))

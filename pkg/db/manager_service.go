@@ -23,12 +23,14 @@ func (m *Manager) storeIndexes() {
 		}
 	}(indexFile)
 	writer := bufio.NewWriter(indexFile)
+
 	m.mtx.RLock()
 	encodingErr := json.NewEncoder(writer).Encode(m.Storage)
 	if encodingErr != nil {
 		panic(encodingErr)
 	}
 	m.mtx.RUnlock()
+
 	flushErr := writer.Flush()
 	if flushErr != nil {
 		panic(flushErr)
@@ -77,7 +79,7 @@ func (m *Manager) updateFile(oldFileName string) (updateFileErr error) {
 			continue
 		}
 
-		data, readErr := m.Read(dbIndex)
+		data, readErr := readHelper(dbIndex, m)
 		if readErr != nil {
 			return readErr
 		}
@@ -111,4 +113,36 @@ func (m *Manager) updateFile(oldFileName string) (updateFileErr error) {
 
 	return nil
 
+}
+
+func readHelper(index uint64, manager *Manager) ([]byte, error) {
+	dbSegment := manager.IndexMap[index].DBSegment
+	seek := manager.IndexMap[index].Seek
+	size := manager.IndexMap[index].Size
+
+	data := make([]byte, size)
+
+	fileName := files.GetFileName(dbSegment)
+	filePath := createPath(fileName)
+
+	dbFile, openErr := os.OpenFile(filePath, os.O_RDONLY, fs.ModePerm)
+
+	if openErr != nil {
+		panic(openErr)
+	}
+	defer func(dbFile *os.File) {
+		closeErr := dbFile.Close()
+		if closeErr != nil {
+			panic(closeErr)
+		}
+	}(dbFile)
+
+	newSectionReader := io.NewSectionReader(dbFile, int64(seek), int64(size))
+	n, readErr := newSectionReader.Read(data)
+
+	if readErr != nil {
+		return nil, readErr
+	}
+
+	return data[:n], nil
 }

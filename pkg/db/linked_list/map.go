@@ -16,42 +16,33 @@ func createPath(fileName string) string {
 	return files.MakePath(os.Getenv("DATABASE_DIR"), LinkedListStorageName, fileName)
 }
 
-func storeOrderedMap(dl *DoubleLinkedList) chan struct{} {
+func storeOrderedMap(dl *DoubleLinkedList) {
 
-	done := make(chan struct{})
-
-	go func() {
-
-		orderMapStorageFile, openErr := os.Create(createPath(LinkedListFileName))
-		if openErr != nil {
-			panic(openErr)
+	orderMapStorageFile, openErr := os.Create(createPath(LinkedListFileName))
+	if openErr != nil {
+		panic(openErr)
+	}
+	defer func(file *os.File) {
+		closeErr := file.Close()
+		if closeErr != nil {
+			panic(closeErr)
 		}
-		defer func(file *os.File) {
-			closeErr := file.Close()
-			if closeErr != nil {
-				panic(closeErr)
-			}
-		}(orderMapStorageFile)
-		writer := bufio.NewWriter(orderMapStorageFile)
+	}(orderMapStorageFile)
+	writer := bufio.NewWriter(orderMapStorageFile)
 
-		var flatLinkedList []uint64
+	var flatLinkedList []uint64
 
-		flatLinkedList = make([]uint64, dl.GetSize())
-		getFlatLinkedList(dl, flatLinkedList)
+	flatLinkedList = make([]uint64, dl.GetSize())
+	getFlatLinkedList(dl, flatLinkedList)
 
-		encoderErr := json.NewEncoder(writer).Encode(flatLinkedList)
-		if encoderErr != nil {
-			panic(encoderErr)
-		}
-		err := writer.Flush()
-		if err != nil {
-			panic(err)
-		}
-
-		done <- struct{}{}
-	}()
-
-	return done
+	encoderErr := json.NewEncoder(writer).Encode(flatLinkedList)
+	if encoderErr != nil {
+		panic(encoderErr)
+	}
+	err := writer.Flush()
+	if err != nil {
+		panic(err)
+	}
 
 }
 

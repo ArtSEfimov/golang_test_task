@@ -326,3 +326,83 @@ func TestDeleteHandler(t *testing.T) {
 		_ = os.RemoveAll(filepath.Join(files.GetProjectRootDir(), "TestDatabase"))
 	}()
 }
+
+func TestUpdateHandler(t *testing.T) {
+	setEnv(t)
+
+	env := newTestFixture()
+	testMux, testRepository := env.mux, env.repository
+
+	for range NOTES {
+
+		author := getRandomString(5)
+		quoteText := getRandomString(10)
+		createdQuote, err := testRepository.Create(&quotes.QuoteRequest{
+			Author:    author,
+			QuoteText: quoteText,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		author = getRandomString(5)
+		quoteText = getRandomString(10)
+		requestQuote := quotes.QuoteRequest{
+			Author:    author,
+			QuoteText: quoteText,
+		}
+
+		bytesQuote, err := json.Marshal(&requestQuote)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reader := bytes.NewReader(bytesQuote)
+
+		// for separation update time
+		//time.Sleep(time.Second)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/quotes/%d", createdQuote.ID), reader)
+
+		testMux.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("got %d, want %d", w.Code, http.StatusOK)
+		}
+
+		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/quotes/%d", createdQuote.ID), nil)
+		w = httptest.NewRecorder()
+		testMux.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("got %d, want %d", w.Code, http.StatusOK)
+		}
+
+		body := w.Body.Bytes()
+		var updatedQuote quotes.Quote
+		err = json.Unmarshal(body, &updatedQuote)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if updatedQuote.ID != createdQuote.ID {
+			t.Fatalf("mismatch quote ID: got %d, want %d", updatedQuote.ID, createdQuote.ID)
+		}
+		if updatedQuote.Author != requestQuote.Author {
+			t.Fatalf("mismatch quote Author: got %s, want %s", updatedQuote.Author, requestQuote.Author)
+		}
+		if updatedQuote.QuoteText != requestQuote.QuoteText {
+			t.Fatalf("mismatch quote QuoteText: got %s, want %s", updatedQuote.QuoteText, requestQuote.QuoteText)
+		}
+
+		// You need to sleep for this test.
+		//if updatedQuote.UpdatedAt == createdQuote.UpdatedAt {
+		//	t.Fatalf("the creation time is equal to the update time, update time is %s, want %s", updatedQuote.UpdatedAt, createdQuote.UpdatedAt)
+		//}
+
+	}
+	defer func() {
+		close(testRepository.Database.Tasks)
+		<-testRepository.Database.Done
+		_ = os.RemoveAll(filepath.Join(files.GetProjectRootDir(), "TestDatabase"))
+	}()
+}
