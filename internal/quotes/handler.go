@@ -59,7 +59,7 @@ func (handler *Handler) GetByID() http.HandlerFunc {
 
 		quote, getErr := handler.Repository.GetQuoteByID(id)
 		if getErr != nil {
-			http.Error(w, getErr.Error(), http.StatusBadRequest)
+			http.Error(w, getErr.Error(), http.StatusNotFound)
 			return
 		}
 
@@ -113,7 +113,7 @@ func (handler *Handler) Delete() http.HandlerFunc {
 
 		deleteErr := handler.Repository.Delete(id)
 		if deleteErr != nil {
-			http.Error(w, deleteErr.Error(), http.StatusBadRequest)
+			http.Error(w, deleteErr.Error(), http.StatusNotFound)
 			return
 		}
 
@@ -141,7 +141,7 @@ func (handler *Handler) Update() http.HandlerFunc {
 		updatedQuote, updateErr := handler.Repository.Update(id, &payload)
 		if updateErr != nil {
 			e := fmt.Errorf("updating error: %w", updateErr)
-			http.Error(w, e.Error(), http.StatusBadGateway)
+			http.Error(w, e.Error(), http.StatusNotFound)
 			return
 		}
 

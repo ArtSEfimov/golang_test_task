@@ -23,11 +23,12 @@ func (m *Manager) storeIndexes() {
 		}
 	}(indexFile)
 	writer := bufio.NewWriter(indexFile)
+	m.mtx.RLock()
 	encodingErr := json.NewEncoder(writer).Encode(m.Storage)
 	if encodingErr != nil {
 		panic(encodingErr)
 	}
-
+	m.mtx.RUnlock()
 	flushErr := writer.Flush()
 	if flushErr != nil {
 		panic(flushErr)

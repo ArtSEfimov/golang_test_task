@@ -49,7 +49,6 @@ func storeOrderedMap(dl *DoubleLinkedList) chan struct{} {
 		}
 
 		done <- struct{}{}
-
 	}()
 
 	return done

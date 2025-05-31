@@ -184,22 +184,19 @@ func Update(index uint64, data []byte, manager *Manager) error {
 }
 
 func Delete(index uint64, manager *Manager) error {
-	manager.mtx.RLock()
+	manager.mtx.Lock()
+
 	dataLocation, ok := manager.IndexMap[index]
 	if !ok {
-		manager.mtx.RUnlock()
+		manager.mtx.Unlock()
 		return fmt.Errorf("index %d not found", index)
 	}
-	manager.mtx.RUnlock()
-
-	fileSegment := dataLocation.DBSegment
-
-	manager.mtx.Lock()
 	delete(manager.IndexMap, index)
-	manager.mtx.Unlock()
-
 	manager.DL.Remove(index)
 
+	manager.mtx.Unlock()
+
+	fileSegment := dataLocation.DBSegment
 	updateErr := manager.updateFile(files.GetFileName(fileSegment))
 	if updateErr != nil {
 		return updateErr

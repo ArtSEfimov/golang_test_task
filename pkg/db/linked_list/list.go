@@ -78,6 +78,7 @@ func (dl *DoubleLinkedList) Remove(id uint64) {
 	promise := storeOrderedMap(dl)
 
 	defer func() {
+		<-promise
 		dl.Size--
 	}()
 
@@ -105,5 +106,4 @@ func (dl *DoubleLinkedList) Remove(id uint64) {
 	next.Prev = prev
 	prev.Next = next
 
-	<-promise
 }
