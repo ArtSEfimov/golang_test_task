@@ -170,13 +170,13 @@ func Update(index uint64, data []byte, manager *Manager) error {
 		break
 	}
 
-	manager.Tasks <- manager.storeIndexes
-
 	manager.wg.Wait()
 
 	if updateErr != nil {
 		return updateErr
 	}
+
+	manager.Tasks <- manager.storeIndexes
 
 	return nil
 }
