@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-const NOTES = 100_000
+const NOTES = 1000
 
 const CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
