@@ -18,9 +18,9 @@ import (
 	"time"
 )
 
-const NOTES = 100_000
+const Notes = 100_000
 
-const CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const Chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 var TestingRandSeed = rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -77,9 +77,9 @@ func TestGetAllHandler(t *testing.T) {
 	}
 
 	// add random notes
-	dataMap := make(map[string]string, NOTES)
+	dataMap := make(map[string]string, Notes)
 
-	for range NOTES {
+	for range Notes {
 		author := getRandomString(5)
 		quoteText := getRandomString(10)
 		dataMap[author] = quoteText
@@ -106,8 +106,8 @@ func TestGetAllHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(filledQuotesList.Quotes) != NOTES {
-		t.Fatalf("got %d quotes, want %d", len(filledQuotesList.Quotes), NOTES)
+	if len(filledQuotesList.Quotes) != Notes {
+		t.Fatalf("got %d quotes, want %d", len(filledQuotesList.Quotes), Notes)
 	}
 
 	for _, quote := range filledQuotesList.Quotes {
@@ -132,7 +132,7 @@ func getRandomString(length int) string {
 
 	byteString := make([]byte, length)
 	for i := 0; i < length; i++ {
-		byteString[i] = CHARS[TestingRandSeed.Intn(len(CHARS))]
+		byteString[i] = Chars[TestingRandSeed.Intn(len(Chars))]
 	}
 	return string(byteString)
 
@@ -169,7 +169,7 @@ func TestGetByIDHandler(t *testing.T) {
 
 	// add random notes one by one
 
-	for range NOTES {
+	for range Notes {
 
 		author := getRandomString(5)
 		quoteText := getRandomString(10)
@@ -224,7 +224,7 @@ func TestCreateHandler(t *testing.T) {
 	env := newTestFixture()
 	testMux, testRepository := env.mux, env.repository
 
-	for range NOTES {
+	for range Notes {
 
 		author := getRandomString(5)
 		quoteText := getRandomString(10)
@@ -287,7 +287,7 @@ func TestDeleteHandler(t *testing.T) {
 	env := newTestFixture()
 	testMux, testRepository := env.mux, env.repository
 
-	for range NOTES {
+	for range Notes {
 
 		author := getRandomString(5)
 		quoteText := getRandomString(10)
@@ -333,7 +333,7 @@ func TestUpdateHandler(t *testing.T) {
 	env := newTestFixture()
 	testMux, testRepository := env.mux, env.repository
 
-	for range NOTES {
+	for range Notes {
 
 		author := getRandomString(5)
 		quoteText := getRandomString(10)

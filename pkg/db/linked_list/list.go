@@ -13,15 +13,8 @@ type DoubleLinkedList struct {
 func NewDoubleLinkedList() *DoubleLinkedList {
 	OrderedMap = make(map[uint64]*Node)
 
-	//tasks := make(chan func())
-	//go func(tasks chan func()) {
-	//	for nextTask := range tasks {
-	//		nextTask()
-	//	}
-	//}(tasks)
-
 	dll := &DoubleLinkedList{}
-	//dll.tasks = tasks
+
 	if files.IsFileExists(createPath(LinkedListFileName)) {
 		recoverOrderedMap(dll)
 	}

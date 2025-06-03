@@ -26,29 +26,6 @@ func GetProjectRootDir() string {
 		}
 		dir = parent
 	}
-	//for {
-	//	if info, infoErr := os.Stat("main.go"); infoErr == nil && !info.IsDir() {
-	//		dir, wdErr := os.Getwd()
-	//		if wdErr != nil {
-	//			panic(wdErr)
-	//		}
-	//		return dir
-	//	}
-	//
-	//	dir, wdErr := os.Getwd()
-	//	if wdErr != nil {
-	//		panic(wdErr)
-	//	}
-	//	parent := filepath.Dir(dir)
-	//	if dir == parent {
-	//		panic(fmt.Errorf("cannot find root directory"))
-	//	}
-	//
-	//	if err := os.Chdir(".."); err != nil {
-	//		panic(err)
-	//	}
-	//	//dir = parent
-	//}
 }
 
 func IsFileExists(filePath string) bool {

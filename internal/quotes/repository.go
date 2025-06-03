@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const LAYOUT = "2006-01-02 15:04:05"
+const Layout = "2006-01-02 15:04:05"
 
 type Repository struct {
 	Database *db.Manager
@@ -112,8 +112,8 @@ func (r *Repository) Create(payload *QuoteRequest) (Quote, error) {
 		Author:    payload.Author,
 		QuoteText: payload.QuoteText,
 	}
-	quote.CreatedAt = time.Now().Format(LAYOUT)
-	quote.UpdatedAt = time.Now().Format(LAYOUT)
+	quote.CreatedAt = time.Now().Format(Layout)
+	quote.UpdatedAt = time.Now().Format(Layout)
 	quote.ID = r.Database.GetID() + 1
 
 	data, encodeErr := json.Marshal(quote)
@@ -137,7 +137,7 @@ func (r *Repository) Update(id uint64, payload *QuoteRequest) (Quote, error) {
 
 	quote.Author = payload.Author
 	quote.QuoteText = payload.QuoteText
-	quote.UpdatedAt = time.Now().Format(LAYOUT)
+	quote.UpdatedAt = time.Now().Format(Layout)
 
 	errGroup := errgroup.Group{}
 	errGroup.Go(
